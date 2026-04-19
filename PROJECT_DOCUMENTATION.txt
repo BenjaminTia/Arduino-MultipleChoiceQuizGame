@@ -1,0 +1,697 @@
+================================================================================
+ARDUINO MCU QUIZ GAME - COMPLETE PROJECT DOCUMENTATION
+================================================================================
+
+PROJECT OVERVIEW
+================================================================================
+This is an educational microcontroller quiz game that tests users on Arduino 
+and embedded systems knowledge. The game features a timed question system 
+with multiple choice answers, visual feedback via LCD and 7-segment display,
+and audio feedback via piezo buzzer.
+
+================================================================================
+HARDWARE COMPONENTS
+================================================================================
+
+1. Arduino UNO (Microcontroller)
+   - Main controller board
+   - ATmega328P processor
+   - 14 digital I/O pins (0-13)
+   - 6 analog input pins (A0-A5)
+
+2. LCD Display 1602A (16x2 character)
+   - 16 columns, 2 rows
+   - Blue backlight with white text
+   - Used for displaying questions and answers
+   - Requires 6 Arduino pins for data (RS, E, D4-D7)
+
+3. 7-Segment Display (Single digit, Common Cathode)
+   - Single digit LED display
+   - Used as visual timer indicator (progress circle)
+   - Only 4 segments used: F, A, B, G
+   - Shows time remaining visually
+
+4. Push Buttons (x4)
+   - Labeled A, B, C, D
+   - Used for answer selection and navigation
+   - INPUT_PULLUP mode (no external resistors needed)
+
+5. RGB LED (Common Cathode)
+   - 4-leg LED (Red, Green, Blue, Common)
+   - Red = Wrong answer
+   - Green = Correct answer
+   - Requires 220Ω resistors on each color leg
+
+6. Piezo Buzzer
+   - Audio feedback device
+   - Generates tones for timer warnings and answer feedback
+   - Connected to digital pin with OUTPUT mode
+
+7. 10k Potentiometer
+   - LCD contrast adjustment
+   - Connected to LCD VO pin (pin 3)
+
+8. Resistors
+   - 3x 220Ω for RGB LED (one per color)
+   - 4x 220Ω for 7-segment segments (F, A, B, G)
+
+9. Breadboard and Jumper Wires
+   - For circuit assembly
+
+================================================================================
+PIN ASSIGNMENTS (ARDUINO UNO)
+================================================================================
+
+LCD 1602A:
+-----------
+Pin 2  → RS (Register Select)
+Pin 3  → E (Enable)
+Pin 4  → D4
+Pin 5  → D5
+Pin 6  → D6
+Pin 7  → D7
+Pin 15 (A) → 5V (Backlight)
+Pin 16 (K) → GND
+
+Push Buttons:
+------------
+Pin 8   → Button A
+Pin 9   → Button B
+Pin 10  → Button C
+Pin 11  → Button D
+All buttons: other leg → GND (using INPUT_PULLUP)
+
+Piezo Buzzer:
+------------
+Pin 12 → Positive (+)
+GND    → Negative (-)
+
+RGB LED:
+--------
+Pin 13   → Red (via 220Ω resistor)
+Pin A0   → Green (via 220Ω resistor)
+Pin A1   → Blue (via 220Ω resistor)
+GND     → Common cathode
+
+7-Segment Display:
+------------------
+Pin A2  → Segment F
+Pin A3  → Segment A
+Pin A4  → Segment B
+Pin A5  → Segment G
+GND     → Common cathode
+All segments via 220Ω resistors
+
+Other:
+-------
+LCD VO (pin 3) → 10k Potentiometer center wiper
+
+================================================================================
+ARDUINO CODE STRUCTURE
+================================================================================
+
+LIBRARIES USED:
+--------------
+#include <LiquidCrystal.h>  // For LCD control
+
+VARIABLES:
+----------
+- score: Player's current score
+- currentQ: Current question index
+- lives: Remaining lives (starts at 3)
+- timer: Countdown timer (starts at 9 seconds)
+- choiceIndex: Selected choice (0-3)
+- showPage: Choice page (0=show A+B, 1=show C+D)
+- lastTime: For millis() timer tracking
+- answering: Game state flag
+
+FUNCTIONS:
+-----------
+setup():
+  - Initialize all pins as INPUT or OUTPUT
+  - Set pin modes with INPUT_PULLUP for buttons
+  - Initialize LCD with 16x2 columns
+  - Display startup message
+
+loop():
+  - Main game loop
+  - Checks for button presses
+  - Handles game states (waiting, answering)
+  - Updates timer every second
+
+getButton():
+  - Reads button states
+  - Returns 'A', 'B', 'C', 'D' or 0
+  - Uses digitalRead() with LOW = pressed
+
+startQuestion():
+  - Resets timer to 9
+  - Sets answering = true
+  - Calls displayQuestion()
+
+displayQuestion():
+  - Clears LCD
+  - Shows "Q#:" question number
+  - Sets choiceIndex = 0, showPage = 0
+  - Calls showQuestionScrolling()
+
+showQuestionScrolling():
+  - Displays question text (last 16 chars if long)
+  - Shows choices based on showPage:
+    - Page 0: Shows A and B
+    - Page 1: Shows C and D
+  - Updates progress circle on 7-segment
+
+checkAnswer(char ans):
+  - Compares answer to correct answer
+  - If correct: score += 10, plays happy tone, green LED
+  - If wrong: lives -= 1, plays sad tone, red LED
+  - Shows score, advances to next question
+
+handleTimeout():
+  - Called when timer reaches 0
+  - Decrements lives
+  - Shows correct answer
+  - Advances to next question
+
+showScore():
+  - Displays current score and lives
+  - Shows question progress (Q#/total)
+
+showStart():
+  - Resets game variables
+  - Shows "Press any key" message
+
+updateTimerBar(int timeLeft):
+  - Controls 7-segment progress circle
+  - Timer 9-7: Full circle (F+A+B+G ON)
+  - Timer 6-4: 3/4 circle (F+A+B ON, G OFF)
+  - Timer 3-2: Half circle (F+A ON, B+G OFF)
+  - Timer 1: 1/4 circle (F ON, others OFF)
+  - Timer 0: Empty (all OFF)
+
+setRGB(int r, int g, int b):
+  - Controls RGB LED
+  - (1,0,0) = Red
+  - (0,1,0) = Green
+  - (0,0,0) = Off
+
+================================================================================
+BUTTON CONTROLS
+================================================================================
+
+In WAITING state (before game starts):
+- Press any button (A/B/C/D) → Start game
+
+In ANSWERING state (during question):
+- Press B → Switch between choice pages (A+B ↔ C+D)
+- Press A → Select current choice and submit answer
+
+================================================================================
+GAME FLOW
+================================================================================
+
+1. START SCREEN
+   - LCD shows: "MCU Quiz Ready" / "Press any key"
+   - Waiting for button press
+
+2. QUESTION PHASE
+   - Timer counts down from 9 seconds
+   - 7-segment shows progress circle
+   - Question displayed on LCD row 1
+   - Choices displayed on LCD row 2 (A+B or C+D)
+   - Press B to switch choice page
+   - Press A to submit answer
+
+3. ANSWER FEEDBACK
+   - Correct: Green LED + double beep (1000Hz → 1500Hz)
+   - Wrong: Red LED + low beep (200Hz)
+   - LED stays on for 2 seconds
+
+4. SCORE SCREEN
+   - Shows: Score: ###, Lives: #
+   - Shows: Q: #/33 (question progress)
+   - Waits 1.5 seconds
+
+5. GAME OVER
+   - Triggered when: Lives = 0 OR all questions answered
+   - Shows final score
+   - Press any button to restart
+
+================================================================================
+QUESTIONS BANK
+================================================================================
+
+The quiz includes 33 engineering questions covering:
+- GPIO fundamentals
+- Arduino UNO specifications
+- PWM (Pulse Width Modulation)
+- Communication protocols (I2C, SPI)
+- Memory (SRAM, Flash, EEPROM)
+- Data types and sizes
+- Built-in functions
+
+Questions are stored in the code as an array of Question structs, each with:
+- question text (q)
+- option A (a)
+- option B (b)
+- option C (c)
+- option D (d)
+- correct answer (correct) - 'A', 'B', 'C', or 'D'
+
+================================================================================
+CIRCUIT WIRING GUIDE
+================================================================================
+
+LCD 1602A WIRING:
+------------------
+LCD Pin 1 (VSS)   → Arduino GND
+LCD Pin 2 (VDD)   → Arduino 5V
+LCD Pin 3 (VO)     → Potentiometer center
+LCD Pin 4 (RS)     → Arduino Pin 2
+LCD Pin 5 (R/W)    → Arduino GND
+LCD Pin 6 (E)      → Arduino Pin 3
+LCD Pin 11 (D4)    → Arduino Pin 4
+LCD Pin 12 (D5)    → Arduino Pin 5
+LCD Pin 13 (D6)    → Arduino Pin 6
+LCD Pin 14 (D7)    → Arduino Pin 7
+LCD Pin 15 (A)     → Arduino 5V
+LCD Pin 16 (K)      → Arduino GND
+
+BUTTON WIRING:
+--------------
+Each button: One leg → Arduino pin (8/9/10/11)
+             Other leg → Arduino GND
+
+No external resistors needed - using INPUT_PULLUP mode
+
+RGB LED WIRING:
+--------------
+RGB Red leg    → Arduino Pin 13 (via 220Ω resistor)
+RGB Green leg  → Arduino Pin A0 (via 220Ω resistor)
+RGB Blue leg   → Arduino Pin A1 (via 220Ω resistor)
+RGB Common    → Arduino GND
+
+PIEZO BUZZER WIRING:
+--------------------
+Positive (+) → Arduino Pin 12
+Negative (-) → Arduino GND
+
+7-SEGMENT WIRING:
+-----------------
+Connect segments F, A, B, G to Arduino pins A2, A3, A4, A5
+via 220Ω resistors each
+Common cathode → Arduino GND
+
+POTENTIOMETER WIRING:
+---------------------
+Left leg   → Arduino GND
+Center   → LCD Pin 3 (VO)
+Right leg → Arduino 5V
+
+================================================================================
+TROUBLESHOOTING
+================================================================================
+
+LCD BLANK/NO DISPLAY:
+- Adjust contrast potentiometer until text appears
+- Check all LCD wiring connections
+- Verify LCD pins 1 (GND) and 2 (5V) are connected
+
+BUTTONS NOT WORKING:
+- Check button GND connections
+- Verify using INPUT_PULLUP mode
+- Test with Serial Monitor: digitalRead(8) should show 1 (not pressed)
+
+RGB LED NOT WORKING:
+- Check resistor values (220Ω)
+- Verify common leg to GND
+- Test each color individually with simple sketch
+
+7-SEGMENT NOT WORKING:
+- Check segment pin wiring
+- Verify 220Ω resistors on each segment
+- Verify common cathode to GND
+
+PIEZO NO SOUND:
+- Check polarity
+- Use tone() function, not digitalWrite()
+- Verify connected to correct pin
+
+================================================================================
+PROJECT FEATURES SUMMARY
+================================================================================
+
+✓ 33 engineering questions
+✓ Multiple choice (A/B/C/D)
+✓ 9-second timer per question
+✓ Visual timer on 7-segment (progress circle)
+✓ Score tracking
+✓ 3 lives system
+✓ LCD display (16x2)
+✓ RGB LED feedback (red/green)
+✓ Piezo audio feedback
+✓ Question scroll for long text
+✓ Choice page switching (A+B ↔ C+D)
+
+================================================================================
+CODE ARCHITECTURE
+================================================================================
+
+STRUCT DEFINITIONS
+================================================================================
+
+struct Question {
+  const char* q;              // Question text (max 16 chars displayed)
+  const char* choices[4];       // Array of 4 choice strings (max 9 chars each)
+  byte correctIndex;           // 0=A, 1=B, 2=C, 3=D
+};
+
+This structure holds one question with:
+- q: The question text
+- choices: Array of 4 string pointers for options A,B,C,D
+- correctIndex: Which choice is correct (0-3)
+
+
+DATA STRUCTURES
+================================================================================
+
+Global Variables:
+----------------
+int score                    - Player's current score (starts at 0)
+int currentQ                 - Questions answered so far
+int lives                    - Remaining lives (starts at 3)
+int timer                    - Countdown timer value
+bool answering               - Game state flag (true = in question)
+unsigned long lastTime       - For millis() timing
+
+char scrollLine0[64]         - Buffer for scrolling question text
+char scrollLine1[96]         - Buffer for scrolling choice text
+int len0, len1               - Lengths of scrolling text
+int scrollIndex               - Current scroll position
+
+int gameQuestions[10]       - Random question order (10 questions per game)
+
+
+PIN CONFIGURATION (at top of file)
+================================================================================
+
+LCD Pins:
+--------
+RS = 2     - Register Select (command vs data)
+E = 3      - Enable (latch data)
+D4-D7 = 4-7 - 4-bit data bus (using 4-bit mode)
+
+Button Pins:
+-----------
+BTN_A = 8, BTN_B = 9, BTN_C = 10, BTN_D = 11
+- All use INPUT_PULLUP (internal pull-up resistor)
+
+Other Pins:
+----------
+PIEZO = 12                    - Piezo buzzer output
+RGB_RED = 13, RGB_GREEN = A0   - RGB LED pins
+7-seg F,A,B,G = A2,A3,A4,A5   - Timer progress segments
+
+
+MAIN FUNCTIONS
+================================================================================
+
+setup()
+------
+Initializes all I/O pins:
+- Sets buttons to INPUT_PULLUP (no external resistor needed)
+- Sets RGB LED segments to OUTPUT
+- Sets 7-segment pins to OUTPUT
+- Initializes LCD (16 columns, 2 rows)
+- Displays startup message
+
+loop()
+------
+Main game loop - runs continuously:
+
+1. Checks if NOT answering (waiting state):
+   - Waits for any button press
+   - If game over, resets score/lives/questions
+   - Starts new question when button pressed
+
+2. If answering (in question):
+   - Checks timer every 1000ms using millis()
+   - Updates 7-segment timer bar
+   - Plays warning beep at 3 seconds
+   - Handles timeout at 0 seconds
+
+3. Button handling:
+   - BUTTON_B: Switch choice page (A+B ↔ C+D)
+   - BUTTON_A: Submit selected answer
+
+
+Scrolling Functions
+==================
+
+initScrolling(const char* q, const char* c1, const char* c2, const char* c3, const char* c4)
+--------------------------------------------------------------------------------
+Copies question and choices into scroll buffers.
+Pads strings to fixed lengths for consistent display.
+
+Parameters:
+- q: Question text
+- c1, c2, c3, c4: Four choice strings
+
+Returns: Sets len0, len1 for scroll lengths
+
+displayScrolling()
+----------------
+Shows question on row 0, current choice on row 1.
+Uses scrollIndex to shift text left.
+Increments scrollIndex each call.
+Wraps around when done.
+
+Key features:
+- Only scrolls if text is longer than 16 chars
+- Shows question in top row
+- Shows choices A/B or C/D based on showPage
+- Current choice marked with ">" prefix
+
+
+Question Functions
+================
+
+pickQuestions()
+--------------
+Randomly selects 10 questions from questionBank:
+- Uses random() seeded with analogRead(0)
+- Stores indices in gameQuestions[] array
+- Ensures no duplicates
+
+displayQuestion()
+--------------
+Shows current question with scrolling:
+- Clears LCD
+- Shows "Q" + question number
+- Calls initScrolling() with current question
+- Calls displayScrolling() to show text
+- Resets timer to 15 seconds
+- Sets answering = true
+
+checkAnswer(char letter)
+--------------------
+Validates player's answer:
+- Converts letter to index (0-3)
+- Compares to correctIndex from questionBank
+- If correct: score+=10, green LED, happy tone
+- If wrong: lives--, red LED, sad tone
+- Shows score and advances to next question
+- Checks for game over
+
+
+Timer Functions
+===============
+
+updateTimerBar(int timeLeft)
+------------------------
+Controls 7-segment progress circle:
+
+Timing (15 seconds total):
+- timeLeft > 12: Full circle - all 4 segments ON (F,A,B,G)
+- timeLeft > 8:  3/4 circle - F+A+B ON, G OFF
+- timeLeft > 4:  Half circle - F+A ON, B+G OFF
+- timeLeft > 0:  1/4 circle - F only ON
+- timeLeft <= 0: Empty - all segments OFF
+
+Uses digitalWrite() to control each segment pin individually based on 
+remaining time thresholds.
+
+
+LED Functions
+============
+
+setRGB(int r, int g, int b)
+--------------------------
+Controls RGB LED colors:
+- (1,0,0) = RED (wrong answer)
+- (0,1,0) = GREEN (correct answer)
+- (0,0,0) = OFF
+
+Uses digitalWrite() to each RGB pin.
+
+
+Audio Functions
+==============
+
+playTone(int freq, int duration)
+-----------------------------
+Generates tone on piezo:
+- Uses tone(PIEZO, freq, duration)
+- Different frequencies for:
+  - Correct: 1000Hz then 1500Hz (happy double beep)
+  - Wrong: 200Hz (sad buzz)
+  - Timer warning: 800Hz (short beep)
+
+
+Pin Mode Explanation
+================================================================================
+
+INPUT_PULLUP Mode:
+-----------------
+Instead of using external pull-down resistors, we use Arduino's internal 
+pull-up resistor:
+- pinMode(pin, INPUT_PULLUP)
+- This enables ~20kΩ internal resistor to 5V
+- Button pressed = LOW (connects to GND)
+- Button released = HIGH (internal pull-up to 5V)
+
+Advantages:
+- No external resistors needed
+- More stable readings
+- Simpler wiring
+
+Disadvantage:
+- Logic is inverted (pressed = LOW, not pressed = HIGH)
+
+
+4-bit LCD Mode
+============
+The LCD uses 4-bit mode (D4-D7) instead of 8-bit:
+- Sends each nibble (4 bits) separately
+- Uses 6 Arduino pins instead of 10
+- RS pin selects command (0) vs data (1)
+- E pin latches data into LCD
+
+
+State Machine
+================================================================================
+
+The game uses a simple state machine:
+
+WAITING (answering = false):
+- Shows "Press any key to start"
+- Waits for button press
+- On press: go to ANSWERING
+
+ANSWERING (answering = true):
+- Timer counts down
+- Shows question with scrolling
+- Button B: switch choice page
+- Button A: submit answer
+- On timeout or answer: go to FEEDBACK
+
+FEEDBACK:
+- Shows result (correct/wrong)
+- LED and beep feedback
+- Shows score
+- Then go to NEXT or GAMEOVER
+
+NEXT:
+- Increments question counter
+- Picks next question
+- Goes to ANSWERING
+
+GAMEOVER:
+- Shows final score
+- On button press: reset and go to WAITING
+
+
+Memory Management
+================================================================================
+
+String Storage:
+- Question strings stored in program memory (flash)
+- Choice strings also in flash
+- Only copies to RAM when displaying
+
+Buffers:
+- scrollLine0[64] - question scroll buffer
+- scrollLine1[96] - choices scroll buffer
+- Total ~160 bytes from 2KB SRAM (7.8%)
+
+Question Bank:
+- 20 questions × ~50 bytes each = ~1000 bytes
+- Uses about 50% of available SRAM
+
+
+Timing with millis()
+================================================================================
+
+Instead of using delay(), the timer uses millis():
+
+unsigned long lastTime = 0;
+
+void loop() {
+  if (answering && millis() - lastTime >= 1000) {
+    lastTime = millis();
+    timer--;
+    updateTimerBar(timer);
+  }
+}
+
+This allows:
+- Non-blocking operation
+- Button presses still detected during countdown
+- More responsive user interface
+
+
+Code Flow Diagram
+================================================================================
+
+  +-----------+
+  |  START    |  Power on, setup() runs
+  +-----------+
+       |
+       v
+  +-----------+    button press    +----------+
+  |  WAITING  | ----------------> | QUESTION |
+  | not answering               |  timer   |
+  +-----------+                 +----------+
+       ^                            |
+       |                         timer tick
+       |                    -----------------
+       | timer=0 or answer
+       |
+       v
+  +-----------+    +----------+    +----------+
+  |  RESULT  | -> |  SCORE   | -> | NEXT/Q  |
+  +-----------+    +----------+    +----------+
+       ^                            |
+       |                         lives=0 or
+       |                    all done
+       |
+       v
+  +-----------+
+  | GAMEOVER |
+  +-----------+
+
+
+Code Style & Conventions
+================================================================================
+
+1. Pin constants at top - easy to change wiring
+2. Descriptive variable names
+3. Comments for every function
+4. Modular functions (one task per function)
+5. State machine for game logic
+6. Non-blocking timer (millis, not delay)
+7. Input pull-up for stable button reading
+
+
+================================================================================

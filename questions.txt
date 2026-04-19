@@ -1,0 +1,36 @@
+# Format: Question | Option A | Option B | Option C | Option D | Correct Answer (A/B/C/D)
+# Keep text SHORT: question max 16 chars, options max 8 chars
+
+GPIO stands for? | General Purpose I/O | Global Program I/O | Graphics Port I/O | Gate Pulse I/O | A
+Arduino UNO has _ digital pins? | 14 | 13 | 12 | 20 | A
+PWM means? | Pulse Width Mod | Power Width Mode | Port Write Mode | Program Write Mod | A
+Built-in LED on pin? | 13 | 12 | 11 | 10 | A
+Arduino voltage? | 5V | 3.3V | 9V | 12V | A
+I2C uses _ wires? | 2 | 4 | 3 | 1 | A
+SPI is _ comm? | Serial | Parallel | Single | Network | A
+ATmega328P has _ KB flash? | 32 | 16 | 8 | 64 | A
+analogWrite() gives? | PWM | Digital | High voltage | Serial | A
+EEPROM is _ memory? | Non-volatile | Volatile | Fast | Flash | A
+digitalRead() returns? | 0 or 1 | 0-255 | 0-1023 | A or B | A
+loop() runs _ times? | Infinite | Once | 10 times | Zero | A
+setup() runs? | Once at start | Every loop | When called | Never | A
+A0-A5 are _ pins | Analog | Digital | PWM | Serial | A
+pinMode configures? | Input or Output | Voltage | Speed | Memory | A
+millis() returns? | Milliseconds | Microseconds | Seconds | Clock cycles | A
+Serial._ for output? | print() | write() | send() | output() | A
+I2C address is _ bits | 7-bit | 8-bit | 16-bit | 4-bit | A
+SPI clock is? | SCK | SDA | MISO | MOSI | A
+Arduino UNO has _ SRAM? | 2KB | 1KB | 512B | 8KB | A
+pullUP resistor is? | Internal | External | Both | Neither | A
+tone() generates? | Square wave | Sine wave | Sawtooth | Triangle | A
+interrupt on UNO? | pins 2,3 | All pins | A0-A5 | Only 13 | A
+ICSP uses _ pins? | 6 | 4 | 8 | 3 | A
+bitWrite() does? | Set bit value | Read bit | Toggle bit | Clear bit | A
+ADC resolution? | 10-bit | 8-bit | 12-bit | 16-bit | A
+map() function does? | Range conversion | Memory map | Pin mapping | Data type | A
+const means? | Read-only | Variable | Function | Memory | A
+sizeof() returns? | Bytes | Bits | Length | Array size | A
+char is _ bytes? | 1 | 2 | 4 | 8 | A
+int is _ bytes? | 2 | 1 | 4 | 8 | A
+long is _ bytes? | 4 | 2 | 8 | 1 | A
+float is _ bytes? | 4 | 2 | 8 | 1 | A
